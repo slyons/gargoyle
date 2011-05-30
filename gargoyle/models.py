@@ -1,11 +1,16 @@
 import datetime
 
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
 from django.http import HttpRequest
 from django.utils.translation import ugettext_lazy as _
 
 from jsonfield import JSONField
 from modeldict import ModelDict
+
+from gargoyle.signals import switch_enabled, switch_disabled
 
 DISABLED  = 1
 SELECTIVE = 2
@@ -321,3 +326,15 @@ class SwitchManager(ModelDict):
             group = unicode(condition_set.get_group_label())
             for field in condition_set.fields.itervalues():
                 yield condition_set.get_id(), group, field
+                
+
+@receiver(post_save, sender=Switch)
+def status_signal(sender, instance, created, **kwargs):
+    if created:
+        return
+    if instance.status == DISABLED:
+        # I'm disabled!
+        #         -Roy
+        switch_disabled.send(sender=sender, instance=instance)
+    else:
+        switch_disabled.send(sender=sender, instance=instance)

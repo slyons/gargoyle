@@ -149,7 +149,7 @@ class GargoyleModule(nexus.NexusModule):
     
     def status(self, request):
         switch = Switch.objects.get(key=request.POST.get("key"))
-
+        
         try:
             status = int(request.POST.get("status"))
         except ValueError:

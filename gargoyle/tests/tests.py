@@ -6,6 +6,7 @@ from django.test import TestCase
 from gargoyle.builtins import IPAddressConditionSet, UserConditionSet
 from gargoyle.models import Switch, SwitchManager, SELECTIVE, DISABLED, GLOBAL
 from gargoyle.decorators import switch_is_active
+from gargoyle.signals import switch_enabled, switch_disabled
 
 class GargoyleTest(TestCase):
     urls = 'gargoyle.tests.urls'
@@ -440,3 +441,24 @@ class GargoyleTest(TestCase):
         self.assertTrue(inner_condition[1], '192.168.1.1')
         self.assertTrue(inner_condition[2], '192.168.1.1')
         self.assertFalse(inner_condition[3])
+        
+    def test_switch_signals(self):
+        switch = Switch.objects.create(
+            key='test',
+            status=SELECTIVE)
+        switch.save()
+        self._switch_status = switch.status
+
+        def callback(sender, instance, **kwargs):
+            self._switch_status = instance.status
+        
+        switch_enabled.connect(callback)
+        switch_disabled.connect(callback)
+        
+        switch.status=DISABLED
+        switch.save()
+        self.assertEquals(self._switch_status, DISABLED)
+        
+        switch.status=GLOBAL
+        switch.save()
+        self.assertEquals(self._switch_status, GLOBAL)
